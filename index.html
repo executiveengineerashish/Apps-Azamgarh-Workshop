@@ -24,17 +24,24 @@ display:flex;flex-direction:column;align-items:center;padding:40px 16px;overflow
 box-shadow:0 8px 24px rgba(0,0,0,.28);overflow:hidden;transition:transform .15s}
 .app:hover .ic,.app:focus-visible .ic{transform:translateY(-4px)}
 .app:focus-visible{outline:2px solid #fff;outline-offset:6px;border-radius:20px}
-.ic img{width:100%;height:100%;object-fit:cover}
+img{width:100%;height:100%;object-fit:cover}
 .app span{display:block;margin-top:10px;font-size:14px;font-weight:600;line-height:1.25}
 #adminBtn{margin-top:auto;padding-top:30px}
 #adminBtn .ic{width:100px;height:100px;background:var(--glass);border:1px solid rgba(255,255,255,.3);border-radius:30px}
-dialog{border:0;border-radius:18px;padding:22px;width:min(560px,94vw);background:#10263f;color:#fff}
+dialog{border:0;border-radius:18px;padding:22px;width:min(600px,94vw);max-height:90vh;overflow:auto;background:#10263f;color:#fff}
 dialog::backdrop{background:rgba(0,0,0,.55)}
 input{width:100%;padding:10px;margin:6px 0 12px;border-radius:8px;border:1px solid #3b5878;background:#0b1c30;color:#fff;font:inherit}
 label{font-size:13px;opacity:.85}
 button.b{padding:9px 16px;border-radius:8px;border:0;background:#2d9cdb;color:#fff;font:inherit;font-weight:600;cursor:pointer;margin-right:8px}
-button.b.g{background:#37506d}button.b.r{background:#c0392b;padding:5px 10px}
-.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #27435f}
+button.b.g{background:#37506d}button.b.r{background:#c0392b}
+button.b.sm{padding:6px 10px;margin-right:4px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #27435f}
+.row .nm{flex:1;font-size:14px}
+.mini{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:22px;overflow:hidden;flex:none}
+.pv{width:90px;height:90px;border-radius:22px;display:grid;place-items:center;font-size:44px;overflow:hidden;margin:6px 0 12px}
+.picks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.picks button{width:38px;height:38px;border-radius:8px;border:1px solid #3b5878;background:#0b1c30;font-size:20px;cursor:pointer;color:#fff}
+.picks button.sw{border:2px solid rgba(255,255,255,.5)}
 h3{margin:14px 0 6px}
 </style>
 </head>
@@ -49,29 +56,31 @@ h3{margin:14px 0 6px}
 <dialog id="dlg"><div id="dlgBody"></div></dialog>
 
 <script>
-/* ====== 1) APNI DEFAULT APPS YAHAN BADLEIN (sab PC par dikhengi) ====== */
+/* ====== DEFAULT APPS (pehli baar ke liye). Baad me sab kuch app ke Admin se badal sakte hain ====== */
 const CONFIG = {
   title: "Workshop Apps · EWD Azamgarh",
   defaultPin: "1234",
   apps: [
     {name:"Agreement Status", url:"https://docs.google.com/", icon:"📝", color:"#f2784b,#e0524a"},
-    {name:"All Google Sheet", url:"https://sheets.google.com/", icon:"📊", color:"#ffffff,#eeeeee"},
+    {name:"All Google Sheet", url:"https://sheets.google.com/", icon:"📊", color:"#ffffff,#e9edf2"},
     {name:"Damage Comparative and Progressive", url:"https://example.com/damage", icon:"⚡", color:"#3b8be8,#2563c9"},
     {name:"Material Consumption", url:"https://example.com/material", icon:"🖥️", color:"#f0568f,#d63d78"},
-    {name:"SAP Logon", url:"https://example.com/sap", icon:"🏢", color:"#ffffff,#f1f1f1"},
+    {name:"SAP Logon", url:"https://example.com/sap", icon:"🏢", color:"#ffffff,#e9edf2"},
     {name:"Site Inspection Report & Responses", url:"https://example.com/sir", icon:"🏭", color:"#8a8cf0,#5f63d9"},
     {name:"TF-Tracker", url:"https://example.com/tf", icon:"🔌", color:"#f0568f,#9b3fa0"}
   ]
 };
-/* ======================================================================= */
+const ICONS = ["📝","📊","📁","⚡","🖥️","🏢","🏭","🔌","🔧","🛠️","📋","📈","📄","🗂️","🌐","🔒","📞","🚚","📦","⚙️","💡","🧾","📍","✅","🔍","📅","👷","🧰"];
+const COLORS = ["#f2784b,#e0524a","#3b8be8,#2563c9","#f0568f,#d63d78","#8a8cf0,#5f63d9","#2fbf8f,#138a64","#f5b53d,#e08a14","#ffffff,#e9edf2","#4b5563,#1f2937"];
+/* ================================================================================================ */
 
 const $ = s => document.querySelector(s);
 const store = {
-  get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+  get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){alert("Save nahi ho paya (jagah kam hai ya browser ne roka)")}}
 };
-let extra = store.get("extraApps", []);   // admin se jude apps
-let hidden = store.get("hiddenApps", []); // admin se hataye default apps
+let apps = store.get("apps", null) || CONFIG.apps.map(a=>({...a}));
+const save = () => store.set("apps", apps);
 const pin = () => store.get("pin", CONFIG.defaultPin);
 
 $("#title").textContent = CONFIG.title;
@@ -84,65 +93,126 @@ function tick(){
 }
 tick(); setInterval(tick,10000);
 
-function allApps(){
-  return [...CONFIG.apps.filter(a=>!hidden.includes(a.name)), ...extra];
+function fillIcon(el,a){
+  const parts = (a.color||COLORS[1]).split(",");
+  el.style.background = `linear-gradient(145deg,${parts[0]},${parts[1]||parts[0]})`;
+  el.textContent = "";
+  if(/^data:image|^https?:|\.(png|jpe?g|svg|webp)$/i.test(a.icon||"")){
+    const im=document.createElement("img"); im.src=a.icon; im.alt=""; el.append(im);
+  } else el.textContent = a.icon || "📁";
 }
 function render(){
   const g = $("#grid"); g.innerHTML="";
-  allApps().forEach(a=>{
+  apps.forEach(a=>{
     const el = document.createElement("a");
     el.className="app"; el.href=a.url; el.target="_blank"; el.rel="noopener";
-    const ic = document.createElement("div"); ic.className="ic";
-    const [c1,c2] = (a.color||"#3b8be8,#2563c9").split(",");
-    ic.style.background=`linear-gradient(145deg,${c1},${c2||c1})`;
-    if(/^https?:|^data:|\.(png|jpe?g|svg|webp)$/i.test(a.icon||"")){
-      const im=document.createElement("img"); im.src=a.icon; im.alt=""; ic.append(im);
-    } else ic.textContent = a.icon || "📁";
+    const ic = document.createElement("div"); ic.className="ic"; fillIcon(ic,a);
     const sp = document.createElement("span"); sp.textContent = a.name;
     el.append(ic,sp); g.append(el);
   });
 }
 render();
 
-/* ---- Admin ---- */
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+/* ---- Admin login ---- */
 const dlg = $("#dlg"), body = $("#dlgBody");
-$("#adminBtn").onclick = () => {
-  body.innerHTML = `<h3>Admin login</h3><label>PIN</label><input id="p" type="password" inputmode="numeric" autofocus>
+$("#adminBtn").onclick = function(){
+  body.innerHTML = `<h3>Admin login</h3><label>PIN</label><input id="p" type="password" inputmode="numeric">
   <button class="b" id="go">Login</button><button class="b g" id="x">Close</button><p id="err" style="color:#ff8a80"></p>`;
   dlg.showModal();
-  setTimeout(()=>{const p=$("#p"); p.focus(); p.click();},60);
-  $("#x").onclick = ()=>dlg.close();
-  const go = ()=> $("#p").value===pin() ? panel() : ($("#err").textContent="Galat PIN");
+  setTimeout(function(){$("#p").focus();},60);
+  $("#x").onclick = function(){dlg.close();};
+  const go = function(){ if($("#p").value===pin()) panel(); else $("#err").textContent="Galat PIN"; };
   $("#go").onclick = go;
   $("#p").addEventListener("keydown", e=>{ if(e.key==="Enter") go(); });
 };
-function panel(){
-  const rows = allApps().map((a,i)=>`<div class="row"><span>${esc(a.name)}</span><button class="b r" data-n="${esc(a.name)}">Remove</button></div>`).join("");
-  body.innerHTML = `<h3>App add karein</h3>
-  <label>Name</label><input id="n"><label>URL (https://...)</label><input id="u">
-  <label>Icon (emoji ya image link)</label><input id="i" placeholder="📁">
-  <button class="b" id="add">Add</button>
-  <h3>Apps</h3>${rows}
-  <h3>PIN badlein</h3><input id="np" placeholder="Naya PIN"><button class="b g" id="sp">Save PIN</button>
-  <h3>Reset</h3><button class="b g" id="rs">Default par wapas</button><button class="b g" id="cl">Close</button>`;
-  $("#cl").onclick=()=>dlg.close();
-  $("#add").onclick=()=>{
-    const n=$("#n").value.trim(), u=$("#u").value.trim();
-    if(!n||!/^https?:\/\//.test(u)) return alert("Name aur sahi URL (https://) daalein");
-    extra.push({name:n,url:u,icon:$("#i").value.trim()||"📁"}); store.set("extraApps",extra); render(); panel();
-  };
-  body.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{
-    const n=b.dataset.n;
-    if(CONFIG.apps.some(a=>a.name===n)) hidden.push(n), store.set("hiddenApps",hidden);
-    else extra=extra.filter(a=>a.name!==n), store.set("extraApps",extra);
-    render(); panel();
-  });
-  $("#sp").onclick=()=>{const v=$("#np").value.trim(); if(v.length<4) return alert("Kam se kam 4 akshar"); store.set("pin",v); alert("PIN badal gaya");};
-  $("#rs").onclick=()=>{extra=[];hidden=[];store.set("extraApps",[]);store.set("hiddenApps",[]);render();panel();};
-}
-function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
-if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+/* ---- Admin panel: list ---- */
+function panel(){
+  const rows = apps.map((a,i)=>`<div class="row"><div class="mini" data-ic="${i}"></div><span class="nm">${esc(a.name)}</span>
+    <span><button class="b g sm" data-up="${i}" title="Upar">↑</button><button class="b g sm" data-dn="${i}" title="Neeche">↓</button><button class="b sm" data-ed="${i}">Edit</button><button class="b r sm" data-del="${i}">Delete</button></span></div>`).join("");
+  body.innerHTML = `<h3>Apps</h3>
+  <button class="b" id="new">+ Naya app jodein</button>${rows || "<p>Koi app nahi hai.</p>"}
+  <h3>PIN badlein</h3><input id="np" placeholder="Naya PIN (kam se kam 4 akshar)"><button class="b g" id="sp">Save PIN</button>
+  <h3>Aur</h3><button class="b g" id="rs">Sab default par wapas</button><button class="b g" id="cl">Close</button>`;
+  body.querySelectorAll("[data-ic]").forEach(el=>fillIcon(el,apps[+el.dataset.ic]));
+  $("#cl").onclick = function(){dlg.close();};
+  $("#new").onclick = function(){form(-1);};
+  body.querySelectorAll("[data-ed]").forEach(b=>b.onclick=function(){form(+b.dataset.ed);});
+  body.querySelectorAll("[data-del]").forEach(b=>b.onclick=function(){
+    const i=+b.dataset.del;
+    if(confirm('"'+apps[i].name+'" hata dein?')){apps.splice(i,1);save();render();panel();}
+  });
+  body.querySelectorAll("[data-up]").forEach(b=>b.onclick=function(){move(+b.dataset.up,-1);});
+  body.querySelectorAll("[data-dn]").forEach(b=>b.onclick=function(){move(+b.dataset.dn,1);});
+  $("#sp").onclick = function(){
+    const v=$("#np").value.trim(); if(v.length<4){alert("Kam se kam 4 akshar");return;}
+    store.set("pin",v); alert("PIN badal gaya");
+  };
+  $("#rs").onclick = function(){
+    if(confirm("Saare badlav hat jayenge. Default apps wapas aayenge. Pakka?")){
+      apps = CONFIG.apps.map(a=>({...a})); save(); render(); panel();
+    }
+  };
+}
+function move(i,d){
+  const j=i+d; if(j<0||j>=apps.length) return;
+  const t=apps[i]; apps[i]=apps[j]; apps[j]=t; save(); render(); panel();
+}
+
+/* ---- Add / Edit form ---- */
+function form(i){
+  const d = i>=0 ? {...apps[i]} : {name:"",url:"https://",icon:"📁",color:COLORS[1]};
+  body.innerHTML = `<h3>${i>=0?"App edit karein":"Naya app jodein"}</h3>
+  <div class="pv" id="pv"></div>
+  <label>Name</label><input id="n" value="${esc(d.name)}">
+  <label>Link (URL)</label><input id="u" value="${esc(d.url)}">
+  <label>Symbol chunein</label><div class="picks" id="ics"></div>
+  <label>Ya apna emoji/akshar likhein</label><input id="ce" maxlength="4" placeholder="jaise 🚀 ya SAP">
+  <label>Ya photo/logo upload karein</label><input id="f" type="file" accept="image/*">
+  <label>Rang</label><div class="picks" id="cols"></div>
+  <button class="b" id="sv">Save</button><button class="b g" id="cn">Cancel</button>`;
+  const pv = function(){ fillIcon($("#pv"), d); };
+  pv();
+  ICONS.forEach(e=>{
+    const b=document.createElement("button"); b.type="button"; b.textContent=e;
+    b.onclick=function(){d.icon=e; pv();};
+    $("#ics").append(b);
+  });
+  COLORS.forEach(c=>{
+    const p=c.split(","), b=document.createElement("button"); b.type="button"; b.className="sw";
+    b.style.background=`linear-gradient(145deg,${p[0]},${p[1]})`;
+    b.onclick=function(){d.color=c; pv();};
+    $("#cols").append(b);
+  });
+  $("#ce").addEventListener("input", e=>{ const v=e.target.value.trim(); if(v){d.icon=v; pv();} });
+  $("#f").addEventListener("change", e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader();
+    r.onload=function(){
+      const im=new Image();
+      im.onload=function(){
+        const s=160, c=document.createElement("canvas"); c.width=c.height=s;
+        const m=Math.min(im.width,im.height), sx=(im.width-m)/2, sy=(im.height-m)/2;
+        c.getContext("2d").drawImage(im,sx,sy,m,m,0,0,s,s);
+        d.icon=c.toDataURL("image/png"); pv();
+      };
+      im.src=r.result;
+    };
+    r.readAsDataURL(file);
+  });
+  $("#cn").onclick = function(){panel();};
+  $("#sv").onclick = function(){
+    d.name=$("#n").value.trim(); d.url=$("#u").value.trim();
+    if(!d.name){alert("Name likhein");return;}
+    if(!/^https?:\/\//i.test(d.url)){alert("Link http:// ya https:// se shuru hona chahiye");return;}
+    if(i>=0) apps[i]=d; else apps.push(d);
+    save(); render(); panel();
+  };
+}
+
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function(){});
 </script>
 </body>
 </html>
