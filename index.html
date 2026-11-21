@@ -110,6 +110,7 @@ $("#adminBtn").onclick = () => {
   body.innerHTML = `<h3>Admin login</h3><label>PIN</label><input id="p" type="password" inputmode="numeric" autofocus>
   <button class="b" id="go">Login</button><button class="b g" id="x">Close</button><p id="err" style="color:#ff8a80"></p>`;
   dlg.showModal();
+  setTimeout(()=>{const p=$("#p"); p.focus(); p.click();},60);
   $("#x").onclick = ()=>dlg.close();
   const go = ()=> $("#p").value===pin() ? panel() : ($("#err").textContent="Galat PIN");
   $("#go").onclick = go; $("#p").onkeydown = e=>e.key==="Enter"&&go();
