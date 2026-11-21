@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workshop Apps</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f2744">
+<style>
+:root{--t1:#5b4a4a;--t2:#0f3a5c;--t3:#127a78;--t4:#2d6cb5;--glass:rgba(255,255,255,.14);--txt:#fff}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:"Segoe UI",system-ui,sans-serif;color:var(--txt);
+background:radial-gradient(circle at 15% 20%,var(--t1),transparent 45%),linear-gradient(160deg,var(--t2),var(--t3) 65%,var(--t4));
+display:flex;flex-direction:column;align-items:center;padding:40px 16px;overflow-x:hidden}
+#clock{font-size:clamp(56px,9vw,92px);font-weight:600;line-height:1}
+#clock small{font-size:.28em;margin-left:6px}
+#date{margin-top:8px;opacity:.85;font-weight:600}
+.pill{margin-top:22px;padding:8px 18px;border:1px solid rgba(255,255,255,.25);border-radius:99px;background:rgba(0,0,0,.2);font-weight:600;font-size:14px}
+.pill i{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2fe39b;margin-right:8px}
+#grid{margin-top:44px;display:flex;flex-wrap:wrap;justify-content:center;gap:34px 40px;max-width:900px}
+.app{width:110px;text-align:center;text-decoration:none;color:inherit;cursor:pointer;background:none;border:0;font:inherit}
+.app .ic{width:110px;height:110px;border-radius:26px;display:grid;place-items:center;font-size:52px;
+box-shadow:0 8px 24px rgba(0,0,0,.28);overflow:hidden;transition:transform .15s}
+.app:hover .ic,.app:focus-visible .ic{transform:translateY(-4px)}
+.app:focus-visible{outline:2px solid #fff;outline-offset:6px;border-radius:20px}
+.ic img{width:100%;height:100%;object-fit:cover}
+.app span{display:block;margin-top:10px;font-size:14px;font-weight:600;line-height:1.25}
+#adminBtn{margin-top:auto;padding-top:30px}
+#adminBtn .ic{width:100px;height:100px;background:var(--glass);border:1px solid rgba(255,255,255,.3);border-radius:30px}
+dialog{border:0;border-radius:18px;padding:22px;width:min(560px,94vw);background:#10263f;color:#fff}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+input{width:100%;padding:10px;margin:6px 0 12px;border-radius:8px;border:1px solid #3b5878;background:#0b1c30;color:#fff;font:inherit}
+label{font-size:13px;opacity:.85}
+button.b{padding:9px 16px;border-radius:8px;border:0;background:#2d9cdb;color:#fff;font:inherit;font-weight:600;cursor:pointer;margin-right:8px}
+button.b.g{background:#37506d}button.b.r{background:#c0392b;padding:5px 10px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #27435f}
+h3{margin:14px 0 6px}
+</style>
+</head>
+<body>
+<div id="clock"></div>
+<div id="date"></div>
+<div class="pill"><i></i><b id="title">Workshop Apps</b></div>
+<main id="grid"></main>
+
+<button class="app" id="adminBtn" aria-label="Admin"><div class="ic">🔒</div><span>Admin</span></button>
+
+<dialog id="dlg"><div id="dlgBody"></div></dialog>
+
+<script>
+/* ====== 1) APNI DEFAULT APPS YAHAN BADLEIN (sab PC par dikhengi) ====== */
+const CONFIG = {
+  title: "Workshop Apps · EWD Azamgarh",
+  defaultPin: "1234",
+  apps: [
+    {name:"Agreement Status", url:"https://docs.google.com/", icon:"📝", color:"#f2784b,#e0524a"},
+    {name:"All Google Sheet", url:"https://sheets.google.com/", icon:"📊", color:"#ffffff,#eeeeee"},
+    {name:"Damage Comparative and Progressive", url:"https://example.com/damage", icon:"⚡", color:"#3b8be8,#2563c9"},
+    {name:"Material Consumption", url:"https://example.com/material", icon:"🖥️", color:"#f0568f,#d63d78"},
+    {name:"SAP Logon", url:"https://example.com/sap", icon:"🏢", color:"#ffffff,#f1f1f1"},
+    {name:"Site Inspection Report & Responses", url:"https://example.com/sir", icon:"🏭", color:"#8a8cf0,#5f63d9"},
+    {name:"TF-Tracker", url:"https://example.com/tf", icon:"🔌", color:"#f0568f,#9b3fa0"}
+  ]
+};
+/* ======================================================================= */
+
+const $ = s => document.querySelector(s);
+const store = {
+  get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+let extra = store.get("extraApps", []);   // admin se jude apps
+let hidden = store.get("hiddenApps", []); // admin se hataye default apps
+const pin = () => store.get("pin", CONFIG.defaultPin);
+
+$("#title").textContent = CONFIG.title;
+
+function tick(){
+  const d = new Date();
+  let h = d.getHours(), ap = h>=12?"PM":"AM"; h = h%12||12;
+  $("#clock").innerHTML = h+":"+String(d.getMinutes()).padStart(2,"0")+"<small>"+ap+"</small>";
+  $("#date").textContent = d.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"});
+}
+tick(); setInterval(tick,10000);
+
+function allApps(){
+  return [...CONFIG.apps.filter(a=>!hidden.includes(a.name)), ...extra];
+}
+function render(){
+  const g = $("#grid"); g.innerHTML="";
+  allApps().forEach(a=>{
+    const el = document.createElement("a");
+    el.className="app"; el.href=a.url; el.target="_blank"; el.rel="noopener";
+    const ic = document.createElement("div"); ic.className="ic";
+    const [c1,c2] = (a.color||"#3b8be8,#2563c9").split(",");
+    ic.style.background=`linear-gradient(145deg,${c1},${c2||c1})`;
+    if(/^https?:|^data:|\.(png|jpe?g|svg|webp)$/i.test(a.icon||"")){
+      const im=document.createElement("img"); im.src=a.icon; im.alt=""; ic.append(im);
+    } else ic.textContent = a.icon || "📁";
+    const sp = document.createElement("span"); sp.textContent = a.name;
+    el.append(ic,sp); g.append(el);
+  });
+}
+render();
+
+/* ---- Admin ---- */
+const dlg = $("#dlg"), body = $("#dlgBody");
+$("#adminBtn").onclick = () => {
+  body.innerHTML = `<h3>Admin login</h3><label>PIN</label><input id="p" type="password" inputmode="numeric" autofocus>
+  <button class="b" id="go">Login</button><button class="b g" id="x">Close</button><p id="err" style="color:#ff8a80"></p>`;
+  dlg.showModal();
+  $("#x").onclick = ()=>dlg.close();
+  const go = ()=> $("#p").value===pin() ? panel() : ($("#err").textContent="Galat PIN");
+  $("#go").onclick = go; $("#p").onkeydown = e=>e.key==="Enter"&&go();
+};
+function panel(){
+  const rows = allApps().map((a,i)=>`<div class="row"><span>${esc(a.name)}</span><button class="b r" data-n="${esc(a.name)}">Remove</button></div>`).join("");
+  body.innerHTML = `<h3>App add karein</h3>
+  <label>Name</label><input id="n"><label>URL (https://...)</label><input id="u">
+  <label>Icon (emoji ya image link)</label><input id="i" placeholder="📁">
+  <button class="b" id="add">Add</button>
+  <h3>Apps</h3>${rows}
+  <h3>PIN badlein</h3><input id="np" placeholder="Naya PIN"><button class="b g" id="sp">Save PIN</button>
+  <h3>Reset</h3><button class="b g" id="rs">Default par wapas</button><button class="b g" id="cl">Close</button>`;
+  $("#cl").onclick=()=>dlg.close();
+  $("#add").onclick=()=>{
+    const n=$("#n").value.trim(), u=$("#u").value.trim();
+    if(!n||!/^https?:\/\//.test(u)) return alert("Name aur sahi URL (https://) daalein");
+    extra.push({name:n,url:u,icon:$("#i").value.trim()||"📁"}); store.set("extraApps",extra); render(); panel();
+  };
+  body.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{
+    const n=b.dataset.n;
+    if(CONFIG.apps.some(a=>a.name===n)) hidden.push(n), store.set("hiddenApps",hidden);
+    else extra=extra.filter(a=>a.name!==n), store.set("extraApps",extra);
+    render(); panel();
+  });
+  $("#sp").onclick=()=>{const v=$("#np").value.trim(); if(v.length<4) return alert("Kam se kam 4 akshar"); store.set("pin",v); alert("PIN badal gaya");};
+  $("#rs").onclick=()=>{extra=[];hidden=[];store.set("extraApps",[]);store.set("hiddenApps",[]);render();panel();};
+}
+function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
